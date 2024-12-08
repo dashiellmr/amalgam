@@ -4,12 +4,25 @@ use lopdf::{Bookmark, Document, Object, ObjectId};
 
 fn main() {
     let mut arguments: Vec<String> = std::env::args().collect();
+
     let help_flag: &std::string::String = &String::from("--help");
     let help_flag_sh: &std::string::String = &String::from("--h");
 
+    let credits_flag: &std::string::String = &String::from("--credits");
+    let credits_flag_sh: &std::string::String = &String::from("--c");
+
+    let recursive_flag: &std::string::String = &String::from("--recursive");
+    let recursive_flag_sh: &std::string::String = &String::from("--r");
+
+    let directory_flag: &std::string::String = &String::from("--dir");
+    let directory_flag_sh: &std::string::String = &String::from("--d");
+
+    let mut recursive = false;
+    let mut directory = false;
+
     if arguments.contains(help_flag) || arguments.contains(help_flag_sh) {
         print!("
-CombinePDF CLI by dashiell\n
+CombinePDF CLI by Dashiell Rich\n
 Usage: ./combine_pdf <destination_path> <pdf1> <pdf2> [<pdf3> ... <pdfN>]\n\n
 Arguments:\n
     <destination_path>      Path to the directory where the combined PDF will be placed alongside the name of the output file.\n
@@ -21,24 +34,39 @@ Example Usage:\n
 Feature Flags:\n
     --h or --help: Displays usage information alongside a list of feature flags.\n
     --d or --dir: Allows for you to combine a directory of PDFs instead of specifying files.\n
+    Note: Usage with --dir flag is as follows: ./combine_pdf [--d | --dir] [--r | --recursive] <destination_path> <source_directory>\n
     --r or --recursive: Can be combined with the directory flag if you would like to combine nested directories of PDFs\n
     --c or --credits: Displays credits alongside the license for this project.
         ");
         return;
+    } else if arguments.contains(credits_flag) || arguments.contains(credits_flag_sh) {
+        println!("
+Created by Dashiell Rich\n
+Merge logic by J-F Liu\n
+Feel free to do whatever you want with this (according to the MIT license).
+        ")
     } else if arguments.len() <= 2 {
-        print!("
+        print!(
+            "
 ERR: Invalid number of arguments\n
 Usage: ./combine_pdf <destination_path> <pdf1> <pdf2> [<pdf3> ... <pdfN>]\n\n
 
 Want to see the all of the feature flags?\n
 Use --help or --h to have them listed out.
-    ");
+    "
+        );
     } else {
+        if arguments.contains(recursive_flag) || arguments.contains(recursive_flag_sh) {
+            recursive = true;
+        }
+        if arguments.contains(directory_flag) || arguments.contains(directory_flag_sh) {
+            directory = true;
+        }
         let num_files = arguments.len();
         let output_path = &arguments.clone()[1];
         let file_names = &mut arguments[2..num_files];
         println!("{:?}", file_names);
-        let result = merge_files(file_names);
+        let result = merge_files(file_names, recursive, directory);
         match result {
             Ok(mut document) => {
                 document.save(output_path).unwrap();
@@ -50,7 +78,11 @@ Use --help or --h to have them listed out.
     }
 }
 
-fn merge_files(file_names: &mut [String]) -> Result<Document, ()> {
+fn merge_files(
+    file_names: &mut [String],
+    recursive: bool,
+    directory: bool,
+) -> Result<Document, ()> {
     let mut pdfs_to_merge: Vec<Document> = vec![];
 
     for file_name in file_names {
