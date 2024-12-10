@@ -1,0 +1,1 @@
+# Amalgam: a simple CLI written in Rust for merging PDFs

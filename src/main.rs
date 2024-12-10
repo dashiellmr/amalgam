@@ -40,11 +40,13 @@ Feature Flags:\n
         ");
         return;
     } else if arguments.contains(credits_flag) || arguments.contains(credits_flag_sh) {
-        println!("
+        println!(
+            "
 Created by Dashiell Rich\n
 Merge logic by J-F Liu\n
 Feel free to do whatever you want with this (according to the MIT license).
-        ")
+        "
+        )
     } else if arguments.len() <= 2 {
         print!(
             "
@@ -55,25 +57,35 @@ Want to see the all of the feature flags?\n
 Use --help or --h to have them listed out.
     "
         );
-    } else {
-        if arguments.contains(recursive_flag) || arguments.contains(recursive_flag_sh) {
-            recursive = true;
+    }
+    if arguments.contains(recursive_flag) || arguments.contains(recursive_flag_sh) {
+        recursive = true;
+    }
+    if arguments.contains(directory_flag) || arguments.contains(directory_flag_sh) {
+        directory = true;
+    }
+    if recursive && !directory {
+        print!("
+ERR: Recursive flag set to true while directory flag is set to false.\n
+If you would like to recursively combine a directory, please use both flags:\n
+Usage: ./combine_pdf --r --d <destination_path> <directory_path>\n\n
+
+Want to see the all of the feature flags?\n
+Use --help or --h to have them listed out.
+        "
+        )
+    }
+    let num_files = arguments.len();
+    let output_path = &arguments.clone()[1];
+    let file_names = &mut arguments[2..num_files];
+    println!("{:?}", file_names);
+    let result = merge_files(file_names, recursive, directory);
+    match result {
+        Ok(mut document) => {
+            document.save(output_path).unwrap();
         }
-        if arguments.contains(directory_flag) || arguments.contains(directory_flag_sh) {
-            directory = true;
-        }
-        let num_files = arguments.len();
-        let output_path = &arguments.clone()[1];
-        let file_names = &mut arguments[2..num_files];
-        println!("{:?}", file_names);
-        let result = merge_files(file_names, recursive, directory);
-        match result {
-            Ok(mut document) => {
-                document.save(output_path).unwrap();
-            }
-            Err(err) => {
-                eprintln!("{:?}", err);
-            }
+        Err(err) => {
+            eprintln!("{:?}", err);
         }
     }
 }
